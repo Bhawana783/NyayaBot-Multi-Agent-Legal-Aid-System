@@ -21,63 +21,13 @@ An AI-powered legal aid platform that provides underserved citizens with **plain
 
 ## 🏗️ System Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      Client (React + TypeScript)                │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  • Case Form (textarea, language toggle)                │   │
-│  │  • Agent Trace (5 step indicators)                      │   │
-│  │  • Draft Viewer (document + cited laws)                 │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                          ↓ SSE Stream ↓                         │
-├─────────────────────────────────────────────────────────────────┤
-│                  Backend (FastAPI + Python)                     │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  LangGraph StateGraph (Multi-Agent Workflow)            │   │
-│  │  ├─ Intake Agent (classify case)                        │   │
-│  │  ├─ Retrieval Agent (RAG via Qdrant)                    │   │
-│  │  ├─ Draft Agent (generate legal document)               │   │
-│  │  └─ Review Agent (critique & cite)                      │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                     ↓ Embeddings ↓                              │
-├─────────────────────────────────────────────────────────────────┤
-│  OpenAI API              Qdrant Vector DB        SQLite Cache   │
-│  (GPT-4o + Embeddings)   (Legal corpus)          (Sessions)     │
-└─────────────────────────────────────────────────────────────────┘
-```
+Multi-tier architecture with React frontend, FastAPI backend, LangGraph agents, and Qdrant vector database.
 
 ---
 
 ## 🔄 Agent Workflow
 
-```
-User Input (problem description)
-         ↓
-    INTAKE NODE
-    • Classifies case type (consumer, labor, property, etc.)
-    • Identifies jurisdiction
-    • Assesses urgency level
-         ↓
-    RETRIEVAL NODE
-    • Semantic search in Qdrant for relevant laws
-    • Returns top 5 matching sections with scores
-         ↓
-    DRAFT NODE
-    • Generates legal petition/notice
-    • Incorporates retrieved laws as context
-         ↓
-    [Urgency Check]
-    ├─ CRITICAL → Skip review, go to END
-    └─ Others → REVIEW NODE
-         ↓
-    REVIEW NODE
-    • Self-critique: identifies weaknesses
-    • Adds source citations
-    • Flags missing information
-         ↓
-       END
-    • Return DraftOutput with all metadata
-```
+Five-stage agent pipeline: Intake → Retrieval → Draft → Review → Output.
 
 ---
 
@@ -109,21 +59,12 @@ User Input (problem description)
 - OpenAI API key
 
 ### 1. Clone & Setup
-```bash
-git clone <repo-url>
-cd NyayaBot-Multi-Agent-Legal-Aid-System
 
-# Copy environment template
-cp .env.example .env
-
-# Edit .env with your OpenAI API key
-# OPENAI_API_KEY=sk-your-key-here
-```
+Clone the repository and set up your environment variables with your OpenAI API key.
 
 ### 2. Start with Docker Compose
-```bash
-docker-compose up --build
-```
+
+Start all services (Frontend, Backend, Qdrant) using Docker Compose.
 
 Services will be available at:
 - **Frontend**: http://localhost:5173
@@ -131,136 +72,33 @@ Services will be available at:
 - **Qdrant**: http://localhost:6333
 
 ### 3. Ingest Legal Corpus
-```bash
-curl -X POST http://localhost:8000/api/ingest
-```
 
-This seeds Qdrant with sample legal documents and creates embeddings.
+Trigger corpus ingestion to seed Qdrant with sample legal documents and create embeddings.
 
 ### 4. (Optional) Local Development
 
-**Backend**:
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-python -m uvicorn main:app --reload
-```
+**Backend**: Set up virtual environment and run Uvicorn with reload mode.
 
-**Frontend**:
-```bash
-cd frontend
-npm install
-npm run dev
-```
+**Frontend**: Install dependencies and run Vite dev server.
 
 ---
 
 ## 📋 Project Structure
 
-```
-NyayaBot/
-├── backend/
-│   ├── main.py                    # FastAPI app, endpoints, SSE
-│   ├── config.py                  # Pydantic settings
-│   ├── requirements.txt
-│   │
-│   ├── models/
-│   │   └── schemas.py             # Pydantic: CaseInput, AgentState, DraftOutput
-│   │
-│   ├── agents/
-│   │   ├── graph.py               # LangGraph StateGraph definition
-│   │   ├── intake_agent.py        # Case classification
-│   │   ├── retrieval_agent.py     # RAG: semantic search
-│   │   ├── draft_agent.py         # Legal document generation
-│   │   └── review_agent.py        # Self-critique & citations
-│   │
-│   ├── rag/
-│   │   ├── ingest.py              # Chunk, embed, upload to Qdrant
-│   │   └── retriever.py           # Semantic search helper
-│   │
-│   └── data/
-│       └── corpus/                # Sample legal documents (.txt)
-│
-├── frontend/
-│   ├── package.json
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   ├── tailwind.config.cjs
-│   ├── index.html
-│   │
-│   └── src/
-│       ├── App.tsx
-│       ├── main.tsx
-│       ├── App.css
-│       ├── index.css
-│       │
-│       ├── pages/
-│       │   └── Home.tsx           # Single page: input + trace + output
-│       │
-│       ├── components/
-│       │   ├── CaseForm.tsx       # Input form
-│       │   ├── AgentTrace.tsx     # Step indicators
-│       │   ├── DraftViewer.tsx    # Document + laws
-│       │   ├── Header.tsx
-│       │   └── Footer.tsx
-│       │
-│       └── lib/
-│           └── stream.ts          # SSE client
-│
-├── docker-compose.yml
-├── Dockerfile.backend
-├── .env.example
-└── README.md
-```
+Front-end: React + TypeScript components and pages. Back-end: FastAPI with LangGraph agents. Shared: Docker Compose configuration.
 
 ---
 
 ## 🔌 API Endpoints
 
 ### POST `/api/analyze`
-Analyze a legal case and return streamed agent output.
-
-**Request:**
-```json
-{
-  "problem_description": "I was unfairly terminated from my job...",
-  "language": "en",
-  "contact_email": "user@example.com"
-}
-```
-
-**Response (Server-Sent Events):**
-```json
-{ "event": "agent_start", "node": "intake", "content": "Processing intake..." }
-{ "event": "agent_done", "node": "intake", "content": "Completed intake" }
-{ "event": "agent_start", "node": "retrieval", "content": "..." }
-...
-{ "event": "final", "node": "complete", "content": "{...DraftOutput...}" }
-```
+Analyze a legal case and return streamed agent output via Server-Sent Events.
 
 ### GET `/api/health`
-Health check endpoint.
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "qdrant": "connected"
-}
-```
+Health check endpoint returning system and Qdrant connection status.
 
 ### POST `/api/ingest`
-Admin endpoint: trigger corpus ingestion into Qdrant.
-
-**Response:**
-```json
-{
-  "status": "success",
-  "message": "Corpus ingestion completed"
-}
-```
+Admin endpoint: trigger corpus ingestion into Qdrant vector database.
 
 ---
 
@@ -287,23 +125,9 @@ Admin endpoint: trigger corpus ingestion into Qdrant.
 
 ### Adding a New Agent Node
 
-1. **Create agent file** (`backend/agents/new_agent.py`):
-   ```python
-   from models.schemas import AgentState
-
-   def new_node(state: AgentState) -> AgentState:
-       """Your agent logic here."""
-       state["new_field"] = "result"
-       return state
-   ```
-
-2. **Register in graph** (`backend/agents/graph.py`):
-   ```python
-   workflow.add_node("new_node_name", new_node)
-   workflow.add_edge("previous_node", "new_node_name")
-   ```
-
-3. **Update AgentState** (`backend/models/schemas.py`) with new fields.
+1. Create agent file in `backend/agents/`
+2. Register in graph at `backend/agents/graph.py`
+3. Update AgentState in `backend/models/schemas.py`
 
 ### Type Safety
 - All functions have type hints
@@ -316,34 +140,13 @@ Admin endpoint: trigger corpus ingestion into Qdrant.
 
 ### Component Pattern
 
-```typescript
-interface MyComponentProps {
-  data: string
-  onAction: (value: string) => void
-}
-
-export const MyComponent: React.FC<MyComponentProps> = ({ data, onAction }) => {
-  return <div>...</div>
-}
-```
-
-- **Zero `any` types**
-- Props are typed interfaces
+- Use TypeScript interfaces for props
+- Zero `any` types
 - Use React.FC for component types
 
 ### SSE Subscription
-```typescript
-import { subscribeToStream, StreamEvent } from '../lib/stream'
 
-const cleanup = subscribeToStream('/api/analyze', {
-  onEvent: (event: StreamEvent) => { /* handle event */ },
-  onError: (error: Error) => { /* handle error */ },
-  onComplete: () => { /* handle completion */ },
-})
-
-// Cleanup when component unmounts
-useEffect(() => () => cleanup(), [])
-```
+Use the `subscribeToStream` helper from `lib/stream.ts` to handle Server-Sent Events with proper cleanup.
 
 ---
 
@@ -359,32 +162,7 @@ useEffect(() => () => cleanup(), [])
 
 ## 📊 Sample Workflow
 
-**Input:**
-```
-"I was fired without notice after 5 years of work. They said it was for poor performance but never gave me any warning. I want to know if this is wrongful termination and what I can do."
-```
-
-**Intake Output:**
-```json
-{
-  "case_type": "labor_matter",
-  "jurisdiction": "Delhi",
-  "urgency": "high"
-}
-```
-
-**Retrieved Laws:**
-```
-- Industrial Disputes Act, 1947, Section 25
-- Industrial Disputes Act, 1947, Section 11
-- Labor Code (pending)
-```
-
-**Draft Output:**
-```
-PETITION FOR RELIEF AGAINST WRONGFUL TERMINATION
-[Generated legal document with case details, applicable sections, and prayer for relief]
-```
+User submits legal problem → Intake classifies case → Retrieval finds relevant laws → Draft generates document → Review adds citations → Final output delivered.
 
 ---
 
