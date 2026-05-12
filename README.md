@@ -168,7 +168,7 @@ User submits legal problem → Intake classifies case → Retrieval finds releva
 
 ## 📸 Screenshots Placeholder
 
-*(Add screenshots here after UI is finalized)*
+
 
 - Input form with case description
 - Agent trace during processing
@@ -222,28 +222,5 @@ MIT License - See LICENSE file for details
 
 ---
 
-## 👨‍💼 Author
 
-**Bhawana** — AI/Data Science Portfolio Project  
-Role: Full-Stack AI Engineer + Product Designer
 
----
-
-## 🚦 Roadmap
-
-- [x] Core LangGraph workflow
-- [x] FastAPI SSE streaming
-- [x] React single-page app
-- [x] Qdrant RAG pipeline
-- [ ] User authentication & case history
-- [ ] Multi-language support (expand beyond Hi/En)
-- [ ] File upload for document analysis
-- [ ] n8n webhook integration
-- [ ] Admin dashboard
-- [ ] Analytics & usage tracking
-- [ ] Mobile-responsive design
-
----
-
-**Questions?** Open an issue or reach out.  
-**Want to contribute?** Submit a PR with your improvements!
